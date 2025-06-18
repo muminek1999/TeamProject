@@ -23,7 +23,6 @@ def test_model(csv_path):
     X = feat_df
     y_true = df['label'].map({'good': 1, 'bad': 0})
 
-    # Dopasuj cechy do modelu
     model_features = model.feature_names_in_
     missing_cols = [col for col in model_features if col not in X.columns]
     missing_df = pd.DataFrame(0, index=X.index, columns=missing_cols)

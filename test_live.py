@@ -28,6 +28,8 @@ def test_model_live(csv_path, n):
 
     df_sample = pd.concat([df_bad, df_good]).sample(frac=1)
 
+    print(df_bad)
+
     feat_df = df_sample.apply(extract_features, axis=1, result_type='expand')
     feat_df = pd.get_dummies(feat_df, columns=['tld', 'geo_loc'], prefix=['tld', 'geo'])
 
@@ -41,4 +43,11 @@ def test_model_live(csv_path, n):
 
     y_pred = model.predict(X)
     correct = (y_true == y_pred).sum()
-    print(f"✅  Correct predictions: {correct} / {n}")
+
+    for idx, row in df_sample.iterrows():
+        url = row['url']
+        true_label = 'Benign' if row['label'] == 'good' else 'Malicious'
+        pred_label = 'Benign' if model.predict(X.loc[[idx]])[0] == 1 else 'Malicious'
+        print(f"🔗 {url}\n   ▶️  Decision: {pred_label} | 🎯 True Label: {true_label}\n")
+
+    print(f"✅  Correct predictions: {correct} / {n}\n")

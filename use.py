@@ -1,6 +1,6 @@
 import pandas as pd
 from joblib import load
-from functions import extract_features, extract_domain, get_ip, get_whois, get_geolocation
+from functions import extract_features, extract_domain, get_ip, get_whois, get_geolocation, get_js_features
 
 def classify_url(url):
     try:
@@ -11,16 +11,20 @@ def classify_url(url):
 
     domain = extract_domain(url)
     ip = get_ip(domain)
-    whois = get_whois(url)
-    geo_loc = get_geolocation(url)
+    whois = get_whois(domain)
+    geo_loc = get_geolocation(ip)
+    js_features = get_js_features(url)
 
     dummy_row = {
         'url': url,
         'https': 'yes' if url.lower().startswith('https') else 'no',
-        'who_is': 'complete' if whois else 'incomplete',
+        'who_is': whois,
         'tld': '.' + url.split('.')[-1],
         'ip_add': ip,
-        'geo_loc': geo_loc.get('country', 'XX')
+        'geo_loc': geo_loc.get('country', 'XX'),
+        'content': js_features['content'],
+        'js_len': js_features['js_len'],
+        'js_obf_len': js_features['js_obf_len'],
     }
 
     features = extract_features(dummy_row)

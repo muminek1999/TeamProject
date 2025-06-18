@@ -5,21 +5,28 @@ import socket
 import whois
 import requests
 import tldextract
+from bs4 import BeautifulSoup
+import urllib.parse
 
 def extract_features(row):
     url = row['url']
     parsed = urlparse(url)
     https_flag = 1 if str(row['https']).lower() in ('yes', 'https', '1', 'true') else 0
+    subdomain_count = parsed.netloc.count('.') - 1 if parsed.netloc.count('.') > 0 else 0
     return {
         'url_len': len(url),
         'domain_len': len(parsed.netloc),
-        'subdomain_count': parsed.netloc.count('.'),
+        'subdomain_count': subdomain_count,
         'uses_https': https_flag,
         'who_is_complete': 1 if str(row['who_is']).lower() == 'complete' else 0,
         'tld': str(row['tld']).lstrip('.').lower(),
         'ip_len': len(str(row['ip_add'])),
         'ip_dot_count': str(row['ip_add']).count('.'),
-        'geo_loc': str(row['geo_loc'])
+        'geo_loc': str(row['geo_loc']),
+
+        'js_len': float(row['js_len']),
+        'js_obf_len': float(row['js_obf_len']),
+        'content_len': len(row['content']) if isinstance(row['content'], str) else 0
     }
 
 def plot_confusion_matrix(cm, labels):
@@ -57,9 +64,10 @@ def get_ip(domain):
 
 def get_whois(domain):
     try:
-        return whois.whois(domain)
+        w = whois.whois(domain)
+        return 'complete' if w.domain_name else 'incomplete'
     except Exception:
-        return {}
+        return 'incomplete'
 
 def get_geolocation(ip):
     try:
@@ -67,3 +75,43 @@ def get_geolocation(ip):
         return response.json()
     except Exception:
         return {}
+
+def get_js_features(url):
+    try:
+        response = requests.get(url, timeout=10)
+        html = response.text
+        content = html
+    except:
+        return {
+            "js_len": 0,
+            "js_obf_len": 0,
+            "content_len": 0
+        }
+
+    soup = BeautifulSoup(html, "html.parser")
+    scripts = soup.find_all("script")
+
+    inline_js = [s.get_text() for s in scripts if s.string]
+    inline_js_code = "\n".join(inline_js)
+
+    external_js_code = ""
+    for s in scripts:
+        if s.has_attr("src"):
+            js_url = urllib.parse.urljoin(url, s["src"])
+            try:
+                js_content = requests.get(js_url, timeout=5).text
+                external_js_code += "\n" + js_content
+            except:
+                continue
+
+    all_js = inline_js_code + external_js_code
+    total_len = len(all_js)
+
+    long_lines = [line for line in all_js.splitlines() if len(line) > 200]
+    obf_len = sum(len(line) for line in long_lines)
+
+    return {
+        "js_len": total_len,
+        "js_obf_len": obf_len,
+        "content": content
+    }

@@ -17,7 +17,7 @@ if __name__ == "__main__":
         classify_url(sys.argv[2])
     elif command == "test" and len(sys.argv) == 3:
         test_model(sys.argv[2])
-    elif command == "test-live" and len(sys.argv) == 4 and (0 < int(sys.argv[3]) < 10):
+    elif command == "test-live" and len(sys.argv) == 4 and (0 < int(sys.argv[3]) < 1000):
         test_model_live(sys.argv[2], int(sys.argv[3]))
     else:
         print("Invalid arguments. Usage:")
