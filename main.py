@@ -2,7 +2,6 @@ import sys
 from train import train_model
 from use import classify_url
 from test import test_model
-from test_live import test_model_live
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
@@ -17,8 +16,6 @@ if __name__ == "__main__":
         classify_url(sys.argv[2])
     elif command == "test" and len(sys.argv) == 3:
         test_model(sys.argv[2])
-    elif command == "test-live" and len(sys.argv) == 4 and (0 < int(sys.argv[3]) < 1000):
-        test_model_live(sys.argv[2], int(sys.argv[3]))
     else:
         print("Invalid arguments. Usage:")
         print(" python main.py train <path_to_csv>")

@@ -1,12 +1,13 @@
 import pandas as pd
 from joblib import load
 from functions import extract_features, extract_domain, get_ip, get_whois, get_geolocation, get_js_features
+import tldextract
 
 def classify_url(url):
     try:
-        model = load("model.joblib")
+        pipe = load("model.joblib")
     except FileNotFoundError:
-        print("❌  Error: File model.joblib not found. Run first: 'python <path> train'")
+        print("❌  model.joblib not found. Run training first.")
         return
 
     domain = extract_domain(url)
@@ -15,11 +16,14 @@ def classify_url(url):
     geo_loc = get_geolocation(ip)
     js_features = get_js_features(url)
 
+    extracted = tldextract.extract(url)
+    tld = extracted.suffix.lower()
+
     dummy_row = {
         'url': url,
         'https': 'yes' if url.lower().startswith('https') else 'no',
         'who_is': whois,
-        'tld': '.' + url.split('.')[-1],
+        'tld': tld,
         'ip_add': ip,
         'geo_loc': geo_loc.get('country', 'XX'),
         'content': js_features['content'],
@@ -29,13 +33,11 @@ def classify_url(url):
 
     features = extract_features(dummy_row)
     df = pd.DataFrame([features])
-    df = pd.get_dummies(df)
 
-    model_features = model.feature_names_in_
+    proba = pipe.predict_proba(df)[0]
+    pred = pipe.predict(df)[0]
 
-    missing_cols = [col for col in model_features if col not in df.columns]
-    missing_df = pd.DataFrame(0, index=df.index, columns=missing_cols)
-    df = pd.concat([df, missing_df], axis=1)[model_features]
+    label = "Benign" if pred == 1 else "Malicious"
+    print(f"\n{label}\n(probability = {proba[pred]:.2f})\n")
 
-    prediction = model.predict(df)[0]
-    print("Benign" if prediction == 1 else "Malicious")
+    return pred, proba[pred]

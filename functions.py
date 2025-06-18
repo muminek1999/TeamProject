@@ -7,9 +7,12 @@ import requests
 import tldextract
 from bs4 import BeautifulSoup
 import urllib.parse
+import numpy as np
 
 def extract_features(row):
     url = row['url']
+    extracted = tldextract.extract(url)
+    tld = extracted.suffix.lower()
     parsed = urlparse(url)
     https_flag = 1 if str(row['https']).lower() in ('yes', 'https', '1', 'true') else 0
     subdomain_count = parsed.netloc.count('.') - 1 if parsed.netloc.count('.') > 0 else 0
@@ -19,14 +22,14 @@ def extract_features(row):
         'subdomain_count': subdomain_count,
         'uses_https': https_flag,
         'who_is_complete': 1 if str(row['who_is']).lower() == 'complete' else 0,
-        'tld': str(row['tld']).lstrip('.').lower(),
+        'tld': tld,
         'ip_len': len(str(row['ip_add'])),
         'ip_dot_count': str(row['ip_add']).count('.'),
         'geo_loc': str(row['geo_loc']),
 
-        'js_len': float(row['js_len']),
-        'js_obf_len': float(row['js_obf_len']),
-        'content_len': len(row['content']) if isinstance(row['content'], str) else 0
+        # 'js_len': float(row['js_len']),
+        # 'js_obf_len': float(row['js_obf_len']),
+        # 'content_len': len(row['content']) if isinstance(row['content'], str) else 0
     }
 
 def plot_confusion_matrix(cm, labels):
@@ -115,3 +118,6 @@ def get_js_features(url):
         "js_obf_len": obf_len,
         "content": content
     }
+
+def log1p_clip(arr, max_bytes=1_000_000):
+    return np.log1p(np.clip(arr, 0, max_bytes))
